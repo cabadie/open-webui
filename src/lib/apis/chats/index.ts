@@ -762,7 +762,12 @@ export const toggleChatPinnedStatusById = async (token: string, id: string) => {
 	return res;
 };
 
-export const cloneChatById = async (token: string, id: string, title?: string) => {
+export const cloneChatById = async (
+	token: string,
+	id: string,
+	title?: string,
+	branchPointMessageId?: string
+) => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/chats/${id}/clone`, {
@@ -773,7 +778,8 @@ export const cloneChatById = async (token: string, id: string, title?: string) =
 			...(token && { authorization: `Bearer ${token}` })
 		},
 		body: JSON.stringify({
-			...(title && { title: title })
+			...(title && { title: title }),
+			...(branchPointMessageId && { branch_point_message_id: branchPointMessageId })
 		})
 	})
 		.then(async (res) => {

@@ -69,6 +69,7 @@
 
 	import {
 		archiveChatById,
+		cloneChatById,
 		createNewChat,
 		deleteChatById,
 		getAllTags,
@@ -249,6 +250,22 @@
 				} catch (e) {}
 			} else {
 				await setDefaults();
+			}
+
+			const pendingFollowUpFork = sessionStorage.getItem(`follow-up-fork-${chatIdProp}`);
+			if (pendingFollowUpFork) {
+				sessionStorage.removeItem(`follow-up-fork-${chatIdProp}`);
+
+				try {
+					const { parentId, prompt } = JSON.parse(pendingFollowUpFork);
+					if (parentId && prompt && history.messages[parentId]) {
+						await tick();
+						await submitMessage(parentId, prompt);
+					}
+				} catch (e) {
+					console.error('Failed to open follow-up fork', e);
+					toast.error($i18n.t('Failed to open follow-up in new chat'));
+				}
 			}
 
 			const chatInput = document.getElementById('chat-input');
@@ -2652,6 +2669,39 @@
 		await sendMessage(history, userMessageId);
 	};
 
+	const openFollowUpInNewChat = async (parentId, prompt) => {
+		if (!$chatId || $chatId.startsWith('local:') || $chatId.startsWith('channel:')) {
+			toast.error($i18n.t('Save this conversation before opening follow-ups in a new chat'));
+			return;
+		}
+
+		if (!parentId || !history.messages[parentId]) {
+			toast.error($i18n.t('Unable to find the follow-up context'));
+			return;
+		}
+
+		try {
+			const title = `${$i18n.t('Follow-up')}: ${prompt.length > 60 ? `${prompt.slice(0, 60)}...` : prompt}`;
+			const forkedChat = await cloneChatById(localStorage.token, $chatId, title, parentId);
+
+			if (forkedChat) {
+				sessionStorage.setItem(
+					`follow-up-fork-${forkedChat.id}`,
+					JSON.stringify({
+						parentId,
+						prompt
+					})
+				);
+
+				chats.set(await getChatList(localStorage.token, $currentChatPage));
+				await goto(`/c/${forkedChat.id}`);
+			}
+		} catch (e) {
+			console.error(e);
+			toast.error($i18n.t('Failed to open follow-up in new chat'));
+		}
+	};
+
 	const regenerateResponse = async (message, suggestionPrompt = null) => {
 		console.log('regenerateResponse');
 
@@ -3080,6 +3130,7 @@
 										{sendMessage}
 										{showMessage}
 										{submitMessage}
+										{openFollowUpInNewChat}
 										{continueResponse}
 										{regenerateResponse}
 										{mergeResponses}

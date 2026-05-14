@@ -1,5 +1,6 @@
 import json
 import logging
+import copy
 from typing import Optional
 from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -1175,6 +1176,39 @@ async def pin_chat_by_id(id: str, user=Depends(get_verified_user), db: AsyncSess
 
 class CloneForm(BaseModel):
     title: Optional[str] = None
+    branch_point_message_id: Optional[str] = None
+
+
+def clone_history_to_branch(history: dict, branch_point_message_id: str) -> dict:
+    messages = history.get('messages', {})
+    if branch_point_message_id not in messages:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERROR_MESSAGES.DEFAULT())
+
+    path = []
+    current_id = branch_point_message_id
+    visited = set()
+
+    while current_id is not None:
+        if current_id in visited or current_id not in messages:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERROR_MESSAGES.DEFAULT())
+
+        visited.add(current_id)
+        path.append(current_id)
+        current_id = messages[current_id].get('parentId')
+
+    path.reverse()
+    branched_messages = {}
+
+    for idx, message_id in enumerate(path):
+        message = copy.deepcopy(messages[message_id])
+        message['childrenIds'] = [path[idx + 1]] if idx + 1 < len(path) else []
+        branched_messages[message_id] = message
+
+    branched_history = copy.deepcopy(history)
+    branched_history['messages'] = branched_messages
+    branched_history['currentId'] = branch_point_message_id
+
+    return branched_history
 
 
 @router.post('/{id}/clone', response_model=Optional[ChatResponse])
@@ -1186,10 +1220,16 @@ async def clone_chat_by_id(
 ):
     chat = await Chats.get_chat_by_id_and_user_id(id, user.id, db=db)
     if chat:
+        cloned_chat = copy.deepcopy(chat.chat)
+        if form_data.branch_point_message_id:
+            cloned_chat['history'] = clone_history_to_branch(
+                cloned_chat.get('history', {}), form_data.branch_point_message_id
+            )
+
         updated_chat = {
-            **chat.chat,
+            **cloned_chat,
             'originalChatId': chat.id,
-            'branchPointMessageId': chat.chat['history']['currentId'],
+            'branchPointMessageId': form_data.branch_point_message_id or chat.chat['history']['currentId'],
             'title': form_data.title if form_data.title else f'Clone of {chat.title}',
         }
 

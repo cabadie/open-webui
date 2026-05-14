@@ -151,6 +151,7 @@
 	export let deleteMessage: Function;
 
 	export let submitMessage: Function;
+	export let openFollowUpInNewChat: (parentId: string, prompt: string) => Promise<void> | void;
 	export let continueResponse: Function;
 	export let regenerateResponse: Function;
 
@@ -1509,6 +1510,11 @@
 									} else {
 										// Submit the follow-up prompt directly
 										submitMessage(message?.id, prompt);
+									}
+								}}
+								onOpenInNewChat={(prompt) => {
+									if (message?.id) {
+										openFollowUpInNewChat(message.id, prompt);
 									}
 								}}
 							/>

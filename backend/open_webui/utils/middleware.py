@@ -3907,7 +3907,28 @@ async def streaming_chat_response_handler(response, ctx):
                             delta_count = 0
                             last_delta_data = None
 
-                    async for line in response.body_iterator:
+                    async def iter_sse_events(body_iterator):
+                        buffer = ''
+
+                        async for chunk in body_iterator:
+                            chunk = chunk.decode('utf-8', 'replace') if isinstance(chunk, bytes) else chunk
+                            buffer += chunk.replace('\r\n', '\n')
+
+                            while '\n\n' in buffer:
+                                event, buffer = buffer.split('\n\n', 1)
+                                data_lines = [
+                                    event_line[len('data:') :].lstrip()
+                                    for event_line in event.splitlines()
+                                    if event_line.startswith('data:')
+                                ]
+                                if data_lines:
+                                    joined_data = '\n'.join(data_lines)
+                                    yield f'data: {joined_data}'
+
+                        if buffer.strip():
+                            yield buffer
+
+                    async for line in iter_sse_events(response.body_iterator):
                         line = line.decode('utf-8', 'replace') if isinstance(line, bytes) else line
                         data = line
 

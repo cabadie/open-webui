@@ -33,6 +33,7 @@
 	export let rateMessage;
 	export let actionMessage;
 	export let submitMessage;
+	export let openFollowUpInNewChat: (parentId: string, prompt: string) => Promise<void> | void;
 
 	export let regenerateResponse;
 	export let continueResponse;
@@ -91,6 +92,7 @@
 				{rateMessage}
 				{actionMessage}
 				{submitMessage}
+				{openFollowUpInNewChat}
 				{deleteMessage}
 				{continueResponse}
 				{regenerateResponse}
@@ -114,6 +116,7 @@
 					{rateMessage}
 					{actionMessage}
 					{submitMessage}
+					{openFollowUpInNewChat}
 					{deleteMessage}
 					{continueResponse}
 					{regenerateResponse}

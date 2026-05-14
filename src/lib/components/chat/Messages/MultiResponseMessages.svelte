@@ -40,6 +40,7 @@
 	export let actionMessage: Function;
 
 	export let submitMessage: Function;
+	export let openFollowUpInNewChat: (parentId: string, prompt: string) => Promise<void> | void;
 	export let deleteMessage: Function;
 
 	export let continueResponse: Function;
@@ -312,6 +313,7 @@
 									{deleteMessage}
 									{actionMessage}
 									{submitMessage}
+									{openFollowUpInNewChat}
 									{continueResponse}
 									regenerateResponse={async (message, prompt = null) => {
 										regenerateResponse(message, prompt);
@@ -368,6 +370,7 @@
 										{deleteMessage}
 										{actionMessage}
 										{submitMessage}
+										{openFollowUpInNewChat}
 										{continueResponse}
 										regenerateResponse={async (message, prompt = null) => {
 											regenerateResponse(message, prompt);

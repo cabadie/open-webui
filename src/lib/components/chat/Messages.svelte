@@ -46,6 +46,10 @@
 	export let chatActionHandler: Function;
 	export let showMessage: Function = () => {};
 	export let submitMessage: Function = () => {};
+	export let openFollowUpInNewChat: (
+		parentId: string,
+		prompt: string
+	) => Promise<void> | void = () => {};
 	export let addMessages: Function = () => {};
 
 	export let readOnly = false;
@@ -520,6 +524,7 @@
 								{actionMessage}
 								{saveMessage}
 								{submitMessage}
+								{openFollowUpInNewChat}
 								{regenerateResponse}
 								{continueResponse}
 								{mergeResponses}
